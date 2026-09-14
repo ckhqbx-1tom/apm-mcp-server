@@ -2,7 +2,7 @@ import pytest
 
 from apm_mcp.errors import APMError
 from apm_mcp.tools.alarms import get_alarm_details, get_alarms
-from conftest import FakeClient, load_json
+from conftest import FakeClient, ResponseSequence, load_json
 
 
 @pytest.mark.asyncio
@@ -70,3 +70,48 @@ async def test_alarm_details_ambiguous_and_not_found():
     with pytest.raises(APMError) as caught:
         await get_alarm_details(client, resource_id="999")
     assert caught.value.code == "not_found"
+
+
+def _alarm(resource_id="10000035", attribute_id="other", alarm_id=None):
+    return {
+        "alarmId": alarm_id, "resourceId": resource_id, "displayName": "release-test",
+        "monitorType": "Server", "severity": 1, "severityText": "Critical",
+        "attributeId": attribute_id, "alertCreationTime": "Apr 25, 2024 3:58 PM",
+    }
+
+
+@pytest.mark.asyncio
+async def test_alarm_details_finds_target_on_second_page_with_server_filter():
+    first = {"data": [_alarm() for _ in range(500)], "meta": {"page": 1, "records": 500}}
+    second = {"data": [_alarm(attribute_id="1657")], "meta": {"page": 2, "records": 1}}
+    client = FakeClient({
+        "/api/v3/alarms": ResponseSequence(first, second),
+        "/AppManager/json/ListMonitor": load_json("list_monitor.json"),
+    })
+    result = await get_alarm_details(client, resource_id="10000035", attribute_id="1657")
+    alarm_calls = [call for call in client.calls if call[0] == "/api/v3/alarms"]
+    assert [call[1]["page"] for call in alarm_calls] == [1, 2]
+    assert all(call[1]["attributeId"] == "1657" for call in alarm_calls)
+    assert result["alarm"]["attribute_id"] == "1657"
+
+
+@pytest.mark.asyncio
+async def test_alarm_details_detects_ambiguity_across_pages():
+    first_rows = [_alarm() for _ in range(499)] + [_alarm(attribute_id="1657")]
+    first = {"data": first_rows, "meta": {"page": 1, "records": 500}}
+    second = {"data": [_alarm(attribute_id="1657")], "meta": {"page": 2, "records": 1}}
+    client = FakeClient({"/api/v3/alarms": ResponseSequence(first, second)})
+    with pytest.raises(APMError) as caught:
+        await get_alarm_details(client, resource_id="10000035", attribute_id="1657")
+    assert caught.value.code == "ambiguous_alarm"
+
+
+@pytest.mark.asyncio
+async def test_alarm_details_exhausts_all_pages_before_not_found():
+    first = {"data": [_alarm() for _ in range(500)], "meta": {"page": 1, "records": 500}}
+    second = {"data": [], "meta": {"page": 2, "records": 0}}
+    client = FakeClient({"/api/v3/alarms": ResponseSequence(first, second)})
+    with pytest.raises(APMError) as caught:
+        await get_alarm_details(client, resource_id="10000035", attribute_id="1657")
+    assert caught.value.code == "not_found"
+    assert [call[1]["page"] for call in client.calls] == [1, 2]

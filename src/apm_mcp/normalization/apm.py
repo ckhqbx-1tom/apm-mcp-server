@@ -57,6 +57,10 @@ def normalize_timestamp(value: Any) -> str | None:
         parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
         return parsed.isoformat()
     except ValueError:
+        pass
+    try:
+        return datetime.strptime(raw, "%b %d, %Y %I:%M %p").isoformat()
+    except ValueError:
         return raw
 
 

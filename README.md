@@ -230,13 +230,25 @@ apm-mcp-server
 | `ListMonitorMetrics` | `GET /AppManager/xml/GetMonitorData` |
 | `GetPerformanceMetrics` | 当前指标使用 `GetMonitorData`，历史指标使用 `ShowPolledData` |
 
+## 0.1.0 Release Scope
+
+0.1.0 固定提供以下 11 个只读 Tool：
+
+- 告警：`GetAlarms`、`GetAlarmDetails`、`GetAlarmNotes`
+- 监视器：`SearchMonitors`、`ListMonitors`、`GetMonitorSummary`、`GetServerContext`
+- 关系与分组：`GetMonitorRelationships`、`GetMonitorGroupTopology`
+- 指标：`ListMonitorMetrics`、`GetPerformanceMetrics`
+
+本版本明确不包含 `PollMonitorNow`、`AddAlarmNote`、告警 acknowledge/pickup、unacknowledge/unpickup、`ClearAlarm`、monitor CRUD、阈值或配置修改、任意 raw REST 调用、SSH 或自动修复能力。
+
 ## 已验证范围
 
-- 单元测试：已通过。
-- 官方响应 fixture 兼容性测试：已通过，覆盖 V3 alarm、Search、ListMonitor、ListServer、GetMonitorData、ShowPolledData RawData/ArchiveData 以及 legacy JSON/XML 业务错误。
-- Docker build：已通过，镜像为 `apm-mcp-server:latest`。
-- MCP stdio smoke test：已通过；`tools/list` 仅包含当前文档列出的只读工具，且工具 schema 不含认证字段。
-- 真实 Applications Manager 实例集成验证：已完成测试实例的五个 P0 工具验证；P1 中已验证 inventory、server context、metric metadata、monitor-group topology、空 dependency 结果和 annotations 响应。该实例使用自签名证书，因此测试时显式设置了 `APM_VERIFY_TLS=false`。
+- Unit tests：本地发布前测试已通过。
+- Official-response fixtures：兼容性测试已通过，覆盖 V3 alarm、Search、ListMonitor、ListServer、GetMonitorData、ShowPolledData RawData/ArchiveData 以及 legacy JSON/XML 业务错误。
+- GitHub Actions CI：已配置 Python 3.11/3.12 测试、MCP stdio smoke test 和独立 Docker build；CI 不使用真实 APM 或 secret。
+- Docker build：本地发布前构建已通过，镜像为 `apm-mcp-server:latest`。
+- MCP protocol smoke test：通过真实 stdio transport 完成 `initialize`、`tools/list` 和正常退出；严格验证 11 个只读 Tool 及 schema 不含认证字段。
+- Real Applications Manager integration：此前已完成测试实例的五个 P0 工具验证；P1 中已验证 inventory、server context、metric metadata、monitor-group topology、空 dependency 结果和 annotations 响应。本轮 release hardening 未将 mock/fixture 测试视为真实 E2E，是否重新验证以发布报告为准。
 
 验证状态描述针对当前代码版本和已测试的 Applications Manager 实例。不同版本仍可能存在响应字段或可选参数差异；遇到无法可靠识别的响应时，服务会 fail closed。
 
