@@ -29,6 +29,17 @@ EXPECTED_TOOLS = {
 FORBIDDEN_SCHEMA_TERMS = {"apikey", "api_key", "password", "token", "authorization"}
 
 
+def validate_tools(tools: list, transport: str) -> None:
+    names = {tool.name for tool in tools}
+    if names != EXPECTED_TOOLS:
+        raise AssertionError(f"Unexpected MCP tool set: {sorted(names)}")
+    schemas = json.dumps([tool.inputSchema for tool in tools]).lower()
+    found = sorted(term for term in FORBIDDEN_SCHEMA_TERMS if term in schemas)
+    if found:
+        raise AssertionError(f"Forbidden terms in MCP tool schemas: {found}")
+    print(f"MCP {transport} smoke test passed: {len(names)} read-only tools")
+
+
 async def smoke_test(docker_image: str | None = None) -> None:
     environment = os.environ.copy()
     environment.update({
@@ -65,14 +76,7 @@ async def smoke_test(docker_image: str | None = None) -> None:
             await session.initialize()
             listed = await session.list_tools()
 
-    names = {tool.name for tool in listed.tools}
-    if names != EXPECTED_TOOLS:
-        raise AssertionError(f"Unexpected MCP tool set: {sorted(names)}")
-    schemas = json.dumps([tool.inputSchema for tool in listed.tools]).lower()
-    found = sorted(term for term in FORBIDDEN_SCHEMA_TERMS if term in schemas)
-    if found:
-        raise AssertionError(f"Forbidden terms in MCP tool schemas: {found}")
-    print(f"MCP stdio smoke test passed: {len(names)} read-only tools")
+    validate_tools(listed.tools, "stdio")
 
 
 if __name__ == "__main__":

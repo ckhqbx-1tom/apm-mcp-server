@@ -86,6 +86,11 @@ ManageEngine Applications Manager
 | `APM_READ_TIMEOUT` | `30` | 读取超时秒数 |
 | `APM_MCP_READ_ONLY` | `true` | 只读模式；当前 11 个工具全部为查询操作 |
 | `APM_LOG_LEVEL` | `INFO` | stderr 日志级别 |
+| `APM_MCP_TRANSPORT` | `stdio` | MCP transport，可选 `stdio` 或 `sse` |
+| `APM_MCP_HOST` | `127.0.0.1` | SSE 监听地址 |
+| `APM_MCP_PORT` | `18082` | SSE 监听端口，范围 1–65535 |
+| `APM_MCP_SSE_PATH` | `/sse` | SSE endpoint path |
+| `APM_MCP_MESSAGE_PATH` | `/messages/` | SSE 客户端消息 endpoint path |
 
 TLS 验证默认开启，程序不会因证书错误自动降级为不安全连接。生产环境建议配置可信证书，或通过 `APM_CA_BUNDLE` 提供企业 CA。
 
@@ -96,6 +101,46 @@ APM_VERIFY_TLS=false
 ```
 
 此时服务会向 stderr 输出安全警告。不要在生产环境中关闭 TLS 验证。
+
+## Transport
+
+stdio 和 SSE 共用同一个 Server、相同的 normalization/service 层，以及完全相同的 11 个只读 Tool。
+
+### stdio
+
+默认配置为：
+
+```text
+APM_MCP_TRANSPORT=stdio
+```
+
+适合 MCP Client 与 Server 位于同一台主机的场景。不设置任何新增 transport 环境变量时，行为与此前版本一致。
+
+### SSE
+
+SSE 是为兼容当前 OpenClaw 跨主机部署方式提供的网络 transport：
+
+```text
+APM_MCP_TRANSPORT=sse
+APM_MCP_HOST=0.0.0.0
+APM_MCP_PORT=18082
+APM_MCP_SSE_PATH=/sse
+APM_MCP_MESSAGE_PATH=/messages/
+```
+
+OpenClaw 中可配置：
+
+```text
+name: appmanager
+transport: SSE
+URL: http://<APM-MCP-SERVER-IP>:18082/sse
+```
+
+例如可使用文档保留地址形式 `http://192.0.2.10:18082/sse`；不要把 Applications Manager API Key 配置给 OpenClaw。
+
+SSE endpoint 当前没有 MCP 层认证。仅应部署在可信内网，并通过主机防火墙只允许 OpenClaw 主机访问 TCP/18082；不要向 `0.0.0.0/0` 开放该端口，也不要直接暴露到公网。本次没有自行增加 JWT 或 OAuth。
+
+当前 MCP 标准的新网络部署更推荐 Streamable HTTP。本版本保留 `stdio` 作为本地/同机模式，只增加 `sse` 作为 OpenClaw 跨主机兼容模式；为控制改动范围，暂不增加 `streamable-http`。
 
 ## Docker 部署
 
@@ -132,6 +177,22 @@ docker run \
 
 ```bash
 -e APM_VERIFY_TLS="false"
+```
+
+跨主机 SSE 部署示例：
+
+```bash
+docker run -d \
+  --name apm-mcp-server \
+  --restart unless-stopped \
+  --env-file /etc/apm-mcp/apm.env \
+  -e APM_MCP_TRANSPORT=sse \
+  -e APM_MCP_HOST=0.0.0.0 \
+  -e APM_MCP_PORT=18082 \
+  -e APM_MCP_SSE_PATH=/sse \
+  -p 18082:18082 \
+  --cap-drop=ALL \
+  apm-mcp-server:0.1.0
 ```
 
 ## MCP 客户端配置
@@ -245,9 +306,9 @@ apm-mcp-server
 
 - Unit tests：本地发布前测试已通过。
 - Official-response fixtures：兼容性测试已通过，覆盖 V3 alarm、Search、ListMonitor、ListServer、GetMonitorData、ShowPolledData RawData/ArchiveData 以及 legacy JSON/XML 业务错误。
-- GitHub Actions CI：已配置 Python 3.11/3.12 测试、MCP stdio smoke test 和独立 Docker build；CI 不使用真实 APM 或 secret。
-- Docker build：本地发布前构建已通过，镜像为 `apm-mcp-server:latest`。
-- MCP protocol smoke test：通过真实 stdio transport 完成 `initialize`、`tools/list` 和正常退出；严格验证 11 个只读 Tool 及 schema 不含认证字段。
+- GitHub Actions CI：已配置 Python 3.11/3.12 测试、MCP stdio/SSE smoke test 和独立 Docker build；CI 不使用真实 APM 或 secret。
+- Docker build：本地发布前构建已通过，镜像为 `apm-mcp-server:0.1.0`。
+- MCP protocol smoke test：stdio 与 localhost SSE 均通过真实 transport 完成 `initialize`、`tools/list` 和正常退出；严格验证 11 个只读 Tool 及 schema 不含认证字段。
 - Real Applications Manager integration：此前已完成测试实例的五个 P0 工具验证；P1 中已验证 inventory、server context、metric metadata、monitor-group topology、空 dependency 结果和 annotations 响应。本轮 release hardening 未将 mock/fixture 测试视为真实 E2E，是否重新验证以发布报告为准。
 
 验证状态描述针对当前代码版本和已测试的 Applications Manager 实例。不同版本仍可能存在响应字段或可选参数差异；遇到无法可靠识别的响应时，服务会 fail closed。

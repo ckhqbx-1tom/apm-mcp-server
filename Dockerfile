@@ -6,5 +6,5 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 RUN pip install --no-cache-dir .
 USER apm
+EXPOSE 18082
 ENTRYPOINT ["apm-mcp-server"]
-

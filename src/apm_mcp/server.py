@@ -27,7 +27,14 @@ async def _invoke(function: Callable[..., Awaitable[dict[str, Any]]], client: AP
 
 def build_server(settings: Settings, client: APMClient | None = None) -> FastMCP:
     apm = client or APMClient(settings)
-    server = FastMCP("ManageEngine Applications Manager", instructions="Read-only operational monitoring tools.")
+    server = FastMCP(
+        "ManageEngine Applications Manager",
+        instructions="Read-only operational monitoring tools.",
+        host=settings.mcp_host,
+        port=settings.mcp_port,
+        sse_path=settings.mcp_sse_path,
+        message_path=settings.mcp_message_path,
+    )
 
     @server.tool(name="GetAlarms", description="Return bounded current or historical Applications Manager alarms.")
     async def alarms(
@@ -108,7 +115,7 @@ def main() -> None:
         logging.getLogger("httpcore").setLevel(logging.CRITICAL)
         if not settings.verify_tls:
             logging.warning("TLS verification is explicitly disabled by APM_VERIFY_TLS")
-        build_server(settings).run(transport="stdio")
+        build_server(settings).run(transport=settings.mcp_transport)
     except APMError as exc:
         print(f"Configuration failed: {exc}", file=sys.stderr)
         raise SystemExit(2) from None
