@@ -9,6 +9,8 @@ class Monitor(BaseModel):
     availability: str | None = None
     health_severity: str | int | None = None
     availability_severity: str | int | None = None
+    health_attribute_id: str | int | None = None
+    availability_attribute_id: str | int | None = None
     health_message: str | None = None
     availability_message: str | None = None
     ip_address: str | None = None

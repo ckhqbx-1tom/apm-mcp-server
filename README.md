@@ -31,13 +31,37 @@ ManageEngine Applications Manager
 
 获取单条告警的完整上下文，并在能够可靠识别资源时补充监视器信息。不会生成 Applications Manager 未提供的 alarm ID。
 
+### `GetAlarmNotes`
+
+使用真实的 resource ID 与 attribute ID 读取现有告警 annotations；不会添加或修改备注。
+
 ### `SearchMonitors`
 
 按名称、监视器类型、IP 地址、自定义字段或全部字段搜索监视器。
 
+### `ListMonitors`
+
+以有界分页结果浏览 monitor inventory，并支持官方 monitor type/resource ID 查询及状态、分组等防御性过滤。
+
 ### `GetMonitorSummary`
 
 返回单个监视器的汇总信息，包括健康状态、可用性、主机信息、管理状态和当前指标。
+
+### `GetServerContext`
+
+根据监视器资源和 API 返回的真实主机信息解析 server 及相关 services，不从名称或 DNS 猜测 IP。
+
+### `GetMonitorRelationships`
+
+读取指定资源的 Health/Availability dependency mapping。部分 Applications Manager 版本要求管理员角色。
+
+### `GetMonitorGroupTopology`
+
+读取一个 Monitor Group 的成员和直接子组，结果有硬性数量限制。
+
+### `ListMonitorMetrics`
+
+列出一个 monitor 当前可查询的 metric metadata、真实 attribute ID 和当前值。
 
 ### `GetPerformanceMetrics`
 
@@ -60,7 +84,7 @@ ManageEngine Applications Manager
 | `APM_CA_BUNDLE` | 未设置 | 自定义 CA 证书文件路径，文件必须存在且可读 |
 | `APM_CONNECT_TIMEOUT` | `10` | 连接超时秒数 |
 | `APM_READ_TIMEOUT` | `30` | 读取超时秒数 |
-| `APM_MCP_READ_ONLY` | `true` | 只读模式；P0 工具全部为查询操作 |
+| `APM_MCP_READ_ONLY` | `true` | 只读模式；当前 11 个工具全部为查询操作 |
 | `APM_LOG_LEVEL` | `INFO` | stderr 日志级别 |
 
 TLS 验证默认开启，程序不会因证书错误自动降级为不安全连接。生产环境建议配置可信证书，或通过 `APM_CA_BUNDLE` 提供企业 CA。
@@ -196,8 +220,14 @@ apm-mcp-server
 |---|---|
 | `GetAlarms` | `GET /api/v3/alarms`，使用 `view=Extended`、服务端过滤和分页 |
 | `GetAlarmDetails` | `GET /api/v3/alarms`，必要时使用 `ListMonitor` 补充资源信息 |
+| `GetAlarmNotes` | `POST /AppManager/json/AlarmAction`，固定 `action=ListAnnotations` |
 | `SearchMonitors` | `GET /AppManager/json/Search` |
+| `ListMonitors` | `GET /AppManager/json/ListMonitor` |
 | `GetMonitorSummary` | `ListMonitor` + `ListServer` + `GetMonitorData` |
+| `GetServerContext` | `ListMonitor` + `ListServer` |
+| `GetMonitorRelationships` | `GET /AppManager/xml/listDependencies` |
+| `GetMonitorGroupTopology` | `GET /AppManager/json/ListMGDetails` |
+| `ListMonitorMetrics` | `GET /AppManager/xml/GetMonitorData` |
 | `GetPerformanceMetrics` | 当前指标使用 `GetMonitorData`，历史指标使用 `ShowPolledData` |
 
 ## 已验证范围
@@ -206,7 +236,7 @@ apm-mcp-server
 - 官方响应 fixture 兼容性测试：已通过，覆盖 V3 alarm、Search、ListMonitor、ListServer、GetMonitorData、ShowPolledData RawData/ArchiveData 以及 legacy JSON/XML 业务错误。
 - Docker build：已通过，镜像为 `apm-mcp-server:latest`。
 - MCP stdio smoke test：已通过；`tools/list` 仅包含当前文档列出的只读工具，且工具 schema 不含认证字段。
-- 真实 Applications Manager 实例集成验证：已完成测试实例的五个 P0 工具验证；该实例使用自签名证书，因此测试时显式设置了 `APM_VERIFY_TLS=false`。
+- 真实 Applications Manager 实例集成验证：已完成测试实例的五个 P0 工具验证；P1 中已验证 inventory、server context、metric metadata、monitor-group topology、空 dependency 结果和 annotations 响应。该实例使用自签名证书，因此测试时显式设置了 `APM_VERIFY_TLS=false`。
 
 验证状态描述针对当前代码版本和已测试的 Applications Manager 实例。不同版本仍可能存在响应字段或可选参数差异；遇到无法可靠识别的响应时，服务会 fail closed。
 
@@ -236,13 +266,15 @@ apm-mcp-server
 - `upstream_error`
 - `parse_error`
 - `unsupported_response`
+- `ambiguous_alarm`
+- `ambiguous_resource`
 
 ## 当前范围
 
-P0 版本定位为只读监控适配器。以下功能不在当前版本范围内：
+当前版本定位为只读监控适配器。以下功能不在当前版本范围内：
 
 - 确认、取消确认或清除告警
-- 添加或修改告警备注
+- 添加或修改告警备注（读取备注已支持）
 - 立即轮询监视器
 - 创建、删除或修改监视器
 - 修改阈值或 Applications Manager 配置

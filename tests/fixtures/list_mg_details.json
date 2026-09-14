@@ -1,0 +1,23 @@
+{
+  "response-code": "4000",
+  "response": {
+    "uri": "/AppManager/json/ListMGDetails",
+    "result": [
+      {
+        "RESOURCEID": "20000036",
+        "DISPLAYNAME": "Applications Manager",
+        "Type": "Monitor Group",
+        "HEALTHSEVERITY": "1",
+        "HEALTHSTATUS": "critical",
+        "AVAILABILITYSEVERITY": "1",
+        "AVAILABILITYSTATUS": "down",
+        "Monitors": [
+          {"RESOURCEID": "20000043", "DISPLAYNAME": "Home Page", "TYPE": "UrlMonitor", "HEALTHSTATUS": "critical", "AVAILABILITYSTATUS": "down"}
+        ],
+        "SubMonitorGroup": [
+          {"RESOURCEID": "20000103", "DISPLAYNAME": "Production", "TYPE": "Sub Group", "HEALTHSTATUS": "clear", "AVAILABILITYSTATUS": "up"}
+        ]
+      }
+    ]
+  }
+}

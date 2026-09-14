@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+from defusedxml import ElementTree
 
 from apm_mcp.errors import APMError
 
@@ -17,6 +18,12 @@ def load_json(name: str) -> Any:
 
 def load_text(name: str) -> str:
     return (FIXTURES / name).read_text()
+
+
+def load_xml(name: str) -> dict[str, Any]:
+    from apm_mcp.client import _xml_node
+    root = ElementTree.fromstring(load_text(name))
+    return {root.tag: _xml_node(root)}
 
 
 class FakeClient:
@@ -34,6 +41,9 @@ class FakeClient:
         return value
 
     async def get_xml(self, path: str, params: dict[str, Any] | None = None) -> Any:
+        return await self.get_json(path, params)
+
+    async def post_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
         return await self.get_json(path, params)
 
 

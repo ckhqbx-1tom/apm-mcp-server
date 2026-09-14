@@ -1,0 +1,10 @@
+<AppManager-response uri="/AppManager/xml/listDependencies">
+  <result>
+    <response response-code="4000">
+      <Dependencies>
+        <Dependency RESOURCEID="10000043" ATTRIBUTEID="2100" DISPLAYNAME="Apache Service" TYPE="Apache" />
+        <Dependency RESOURCEID="10000055" ATTRIBUTEID="15" DISPLAYNAME="Tomcat Service" TYPE="Tomcat" />
+      </Dependencies>
+    </response>
+  </result>
+</AppManager-response>

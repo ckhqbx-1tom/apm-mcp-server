@@ -34,6 +34,17 @@ async def test_legacy_auth_is_query_parameter():
 
 
 @pytest.mark.asyncio
+async def test_legacy_read_only_action_uses_post_with_internal_auth():
+    async def handler(request):
+        assert request.method == "POST"
+        assert request.url.params["apikey"] == "top-secret"
+        assert request.url.params["action"] == "ListAnnotations"
+        return httpx.Response(200, json={"response-code": "4000", "response": {"result": []}})
+    async with APMClient(settings(), httpx.MockTransport(handler)) as client:
+        await client.post_json("/AppManager/json/AlarmAction", {"action": "ListAnnotations"})
+
+
+@pytest.mark.asyncio
 async def test_auth_failure_does_not_expose_secret():
     async def handler(request):
         return httpx.Response(401, text="top-secret")

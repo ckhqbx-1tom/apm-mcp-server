@@ -32,7 +32,14 @@ class APMClient:
         await self._http.aclose()
 
     async def get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
-        response = await self._get(path, params)
+        response = await self._request("GET", path, params)
+        return self._decode_json(path, response)
+
+    async def post_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
+        response = await self._request("POST", path, params)
+        return self._decode_json(path, response)
+
+    def _decode_json(self, path: str, response: httpx.Response) -> Any:
         try:
             payload = response.json()
         except (ValueError, UnicodeDecodeError) as exc:
@@ -42,7 +49,7 @@ class APMClient:
         return payload
 
     async def get_xml(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        response = await self._get(path, params)
+        response = await self._request("GET", path, params)
         if not response.content.strip():
             return {}
         try:
@@ -53,7 +60,7 @@ class APMClient:
         _check_legacy_response(payload)
         return payload
 
-    async def _get(self, path: str, params: dict[str, Any] | None) -> httpx.Response:
+    async def _request(self, method: str, path: str, params: dict[str, Any] | None) -> httpx.Response:
         safe_params = {key: value for key, value in (params or {}).items() if value is not None}
         normalized_path = path.lstrip("/")
         headers: dict[str, str] = {}
@@ -62,7 +69,7 @@ class APMClient:
         else:
             safe_params["apikey"] = self.settings.api_key
         try:
-            response = await self._http.get(normalized_path, params=safe_params, headers=headers)
+            response = await self._http.request(method, normalized_path, params=safe_params, headers=headers)
         except httpx.TimeoutException as exc:
             raise APMError("timeout", "Applications Manager request timed out.") from exc
         except httpx.ConnectError as exc:

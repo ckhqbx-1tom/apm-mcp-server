@@ -108,6 +108,8 @@ def normalize_monitor(item: dict[str, Any]) -> dict[str, Any]:
         "availability": _lower(field(item, "availabilityStatus", "AVAILABILITYSTATUS", "availability")),
         "health_severity": field(item, "healthSeverity", "HEALTHSEVERITY"),
         "availability_severity": field(item, "availabilitySeverity", "AVAILABILITYSEVERITY"),
+        "health_attribute_id": field(item, "healthAttributeId", "HEALTHATTRIBUTEID"),
+        "availability_attribute_id": field(item, "availabilityAttributeId", "AVAILABILITYATTRIBUTEID"),
         "health_message": field(item, "healthMessage", "HEALTHMESSAGE"),
         "availability_message": field(item, "availabilityMessage", "AVAILABILITYMESSAGE"),
         "ip_address": field(item, "ipAddress", "IPADDRESS", "HOSTIP", "host"),

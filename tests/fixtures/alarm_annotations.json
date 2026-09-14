@@ -1,0 +1,10 @@
+{
+  "response-code": "4000",
+  "response": {
+    "uri": "/AppManager/json/AlarmAction",
+    "result": [
+      {"Message": "Investigating the incident.", "User": "operator", "LongTime": "1714470960000", "ModTime": "Apr 30, 2024 1:56 PM"},
+      {"Message": "Service recovered.", "User": "operator", "LongTime": "1714474560000", "ModTime": "Apr 30, 2024 2:56 PM"}
+    ]
+  }
+}
