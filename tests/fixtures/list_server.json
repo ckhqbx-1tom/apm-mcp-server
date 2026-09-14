@@ -1,0 +1,18 @@
+{
+  "response-code": "4000",
+  "response": {
+    "result": [
+      {
+        "DISPLAYNAME": "production-server",
+        "RESOURCEID": "10000038",
+        "Name": "server.example.invalid",
+        "PARENTIP": "192.0.2.0",
+        "IPADDRESS": "192.0.2.10",
+        "TYPE": "Windows",
+        "Service": [
+          {"ATTRIBUTEID": "2100", "RESOURCEID": "10000043", "DISPLAYNAME": "Apache", "TYPE": "Apache"}
+        ]
+      }
+    ]
+  }
+}

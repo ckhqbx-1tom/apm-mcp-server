@@ -1,0 +1,23 @@
+{
+  "response-code": "4000",
+  "response": {
+    "result": [
+      {
+        "DISPLAYNAME": "production-windows",
+        "RESOURCEID": "10000035",
+        "TYPE": "Windows",
+        "HEALTHMESSAGE": "Health is critical.",
+        "HEALTHSTATUS": "critical",
+        "HEALTHSEVERITY": "1",
+        "AVAILABILITYMESSAGE": "Resource is up.",
+        "AVAILABILITYSTATUS": "up",
+        "AVAILABILITYSEVERITY": "5",
+        "Managed": "true",
+        "ASSOCIATEDGROUPS": "Name:Applications Manager;Id:10000029,Name:Production;Id:10000105",
+        "HOSTNAME": "server.example.invalid",
+        "HOSTIP": "192.0.2.10",
+        "LAST_POLLED_TIME": "1714470960000"
+      }
+    ]
+  }
+}

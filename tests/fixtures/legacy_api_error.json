@@ -1,0 +1,7 @@
+{
+  "response-code": "4008",
+  "response": {
+    "uri": "/AppManager/json/Search",
+    "result": [{"message": "Unknown extra parameter found in the request."}]
+  }
+}

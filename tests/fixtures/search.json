@@ -1,0 +1,20 @@
+{
+  "response-code": "4000",
+  "response": {
+    "result": [
+      {
+        "Type": "Linux",
+        "HealthStatus": "clear",
+        "AvailabilityMessage": "Resource is up.",
+        "DisplayName": "production-linux",
+        "ManagedServer": "Admin Server",
+        "AvailabilityStatus": "up",
+        "SubGroup": "Linux",
+        "ResourceId": "10000108",
+        "HealthMessage": "Data collection successful.",
+        "HealthSeverity": "5",
+        "AvailabilitySeverity": "5"
+      }
+    ]
+  }
+}

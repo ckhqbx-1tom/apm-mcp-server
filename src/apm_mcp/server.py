@@ -38,8 +38,12 @@ def build_server(settings: Settings, client: APMClient | None = None) -> FastMCP
                              end_time=end_time, page=page, page_size=page_size)
 
     @server.tool(name="GetAlarmDetails", description="Return alarm context and safely resolved resource information.")
-    async def alarm_details(alarm_id: str | None = None, resource_id: str | None = None, attribute_id: str | None = None) -> dict[str, Any]:
-        return await _invoke(get_alarm_details, apm, alarm_id=alarm_id, resource_id=resource_id, attribute_id=attribute_id)
+    async def alarm_details(
+        alarm_id: str | None = None, resource_id: str | None = None,
+        attribute_id: str | None = None, created_at: str | None = None,
+    ) -> dict[str, Any]:
+        return await _invoke(get_alarm_details, apm, alarm_id=alarm_id, resource_id=resource_id,
+                             attribute_id=attribute_id, created_at=created_at)
 
     @server.tool(name="SearchMonitors", description="Resolve a name, IP address, or application term to monitored resources.")
     async def monitor_search(query: str, search_by: str = "all", limit: int = 50) -> dict[str, Any]:

@@ -1,0 +1,35 @@
+{
+  "message": "success",
+  "data": [
+    {
+      "resourceId": "10000035",
+      "displayName": "Production_Tomcat-server",
+      "monitorType": "Tomcat-server",
+      "monitorTypeDisplayName": "Tomcat Server",
+      "parentResourceId": "10000029",
+      "parentMonitorName": "Production",
+      "severity": 1,
+      "severityText": "Critical",
+      "alertCreationTime": "1714040880000",
+      "alertModifiedTimeInMillis": "1714470960000",
+      "message": "Heap memory threshold exceeded.",
+      "technician": "",
+      "attributeId": "1651",
+      "attributeName": "MemoryUsage",
+      "attributeDisplayName": "Heap Memory",
+      "acknowledged": false,
+      "annotationAdded": false,
+      "latestNote": ""
+    },
+    {
+      "resourceId": "10000035",
+      "displayName": "Production_Tomcat-server",
+      "severity": 4,
+      "severityText": "Warning",
+      "alertCreationTime": "1714040900000",
+      "attributeId": "1652",
+      "attributeDisplayName": "Response Time"
+    }
+  ],
+  "meta": {"total": 12, "records": 2, "page": 1}
+}

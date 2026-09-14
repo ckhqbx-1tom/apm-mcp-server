@@ -2,52 +2,71 @@ import pytest
 
 from apm_mcp.errors import APMError
 from apm_mcp.tools.alarms import get_alarm_details, get_alarms
-from conftest import FakeClient
+from conftest import FakeClient, load_json
 
 
 @pytest.mark.asyncio
-async def test_get_alarms_normal_filter_and_pagination(alarm_payload):
-    payload = {"alarms": alarm_payload["alarms"] + [alarm_payload["alarms"][0] | {"alarmId": "a2", "severity": "warning"}]}
-    client = FakeClient({"/api/v3/alarms": payload})
-    result = await get_alarms(client, severity="critical", page_size=1)
-    assert result["alarms"][0]["alarm_id"] == "a1"
-    assert result["alarms"][0]["created_at"].startswith("2023-")
-    assert result["page_size"] == 1
+async def test_official_alarm_shape_severity_and_server_parameters():
+    client = FakeClient({"/api/v3/alarms": load_json("v3_alarms_extended.json")})
+    result = await get_alarms(client, severity="critical", resource_id="10000035", acknowledged=False,
+        start_time="1714000000000", end_time="1715000000000", page=2, page_size=25)
+    assert client.calls[0][1] == {
+        "view": "Extended", "severity": "Critical", "resourceId": "10000035",
+        "monitorName": None, "monitorGroup": None,
+        "acknowledged": "false", "startTime": "1714000000000", "endTime": "1715000000000",
+        "page": 2, "rows": 25,
+    }
+    alarm = result["alarms"][0]
+    assert alarm["severity"] == "critical"
+    assert alarm["severity_code"] == 1
+    assert result["has_more"] is False
 
 
 @pytest.mark.asyncio
-async def test_get_alarms_empty_and_malformed():
-    assert (await get_alarms(FakeClient({"/api/v3/alarms": {"alarms": []}})))["alarms"] == []
+async def test_alarm_monitor_name_and_group_parameter_mapping():
+    empty = {"data": [], "meta": {"total": 0, "records": 0, "page": 1}}
+    name_client = FakeClient({"/api/v3/alarms": empty})
+    await get_alarms(name_client, monitor_name="app")
+    assert name_client.calls[-1][1]["monitorName"] == "app"
+    group_client = FakeClient({"/api/v3/alarms": empty})
+    await get_alarms(group_client, monitor_group="production")
+    assert group_client.calls[-1][1]["monitorGroup"] == "production"
+    with pytest.raises(APMError):
+        await get_alarms(FakeClient({}), resource_id="1", monitor_group="group")
+
+
+@pytest.mark.asyncio
+async def test_alarm_empty_malformed_and_severity_validation():
+    assert (await get_alarms(FakeClient({"/api/v3/alarms": {"data": [], "meta": {"total": 0}}})))["alarms"] == []
     with pytest.raises(APMError, match="unsupported"):
-        await get_alarms(FakeClient({"/api/v3/alarms": "bad"}))
+        await get_alarms(FakeClient({"/api/v3/alarms": {"alarms": []}}))
+    with pytest.raises(APMError, match="severity"):
+        await get_alarms(FakeClient({}), severity="1")
 
 
 @pytest.mark.asyncio
-async def test_alarm_details_exact_and_enriched(alarm_payload):
-    client = FakeClient({
-        "/api/v3/alarms": alarm_payload,
-        "/AppManager/json/ListMonitor": {"monitors": [{"RESOURCEID": "10", "DISPLAYNAME": "Payments API", "IPADDRESS": "192.0.2.10"}]},
-    })
-    result = await get_alarm_details(client, alarm_id="a1")
-    assert result["resource"]["display_name"] == "Payments API"
+async def test_alarm_details_resource_unique_and_null_alarm_id():
+    payload = load_json("v3_alarms_extended.json")
+    payload["data"] = payload["data"][:1]
+    client = FakeClient({"/api/v3/alarms": payload, "/AppManager/json/ListMonitor": load_json("list_monitor.json")})
+    result = await get_alarm_details(client, resource_id="10000035")
+    assert result["alarm"]["alarm_id"] is None
     assert result["resource"]["host"] == "192.0.2.10"
 
 
 @pytest.mark.asyncio
-async def test_alarm_details_missing_and_optional_fields():
-    with pytest.raises(APMError) as caught:
-        await get_alarm_details(FakeClient({"/api/v3/alarms": {"alarms": []}}), alarm_id="none")
-    assert caught.value.code == "not_found"
-    result = await get_alarm_details(FakeClient({"/api/v3/alarms": {"alarms": [{"resourceId": "1"}]}, "/AppManager/json/ListMonitor": {"monitors": []}}), resource_id="1")
-    assert result["alarm"]["message"] is None
+async def test_alarm_details_resource_and_attribute_unique():
+    client = FakeClient({"/api/v3/alarms": load_json("v3_alarms_extended.json"), "/AppManager/json/ListMonitor": load_json("list_monitor.json")})
+    result = await get_alarm_details(client, resource_id="10000035", attribute_id="1652")
+    assert result["alarm"]["attribute_id"] == "1652"
 
 
 @pytest.mark.asyncio
-async def test_alarm_details_resolves_v3_alarm_without_ids_by_exact_inventory_name():
-    client = FakeClient({
-        "/api/v3/alarms": {"data": [{"displayName": "app", "severityText": "Critical"}]},
-        "/AppManager/json/ListMonitor": {"response": {"result": [{"RESOURCEID": "7", "DISPLAYNAME": "app"}]}},
-    })
-    result = await get_alarm_details(client, resource_id="7")
-    assert result["alarm"]["resource_id"] == "7"
-    assert result["resource"]["display_name"] == "app"
+async def test_alarm_details_ambiguous_and_not_found():
+    client = FakeClient({"/api/v3/alarms": load_json("v3_alarms_extended.json")})
+    with pytest.raises(APMError) as caught:
+        await get_alarm_details(client, resource_id="10000035")
+    assert caught.value.code == "ambiguous_alarm"
+    with pytest.raises(APMError) as caught:
+        await get_alarm_details(client, resource_id="999")
+    assert caught.value.code == "not_found"

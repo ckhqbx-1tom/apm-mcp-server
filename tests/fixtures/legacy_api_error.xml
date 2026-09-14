@@ -1,0 +1,7 @@
+<AppManager-response uri="/AppManager/xml/GetMonitorData">
+  <result>
+    <response response-code="4008">
+      <message>Unknown extra parameter found in the request.</message>
+    </response>
+  </result>
+</AppManager-response>

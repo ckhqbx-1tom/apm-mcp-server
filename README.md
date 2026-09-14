@@ -190,6 +190,26 @@ apm-mcp-server
 - 上游缺少的字段返回 `null` 或省略，不会猜测资源 ID、IP 地址或指标值。
 - 不支持或无法安全解析的响应会返回明确错误。
 
+## Applications Manager API 映射
+
+| MCP 工具 | Applications Manager API |
+|---|---|
+| `GetAlarms` | `GET /api/v3/alarms`，使用 `view=Extended`、服务端过滤和分页 |
+| `GetAlarmDetails` | `GET /api/v3/alarms`，必要时使用 `ListMonitor` 补充资源信息 |
+| `SearchMonitors` | `GET /AppManager/json/Search` |
+| `GetMonitorSummary` | `ListMonitor` + `ListServer` + `GetMonitorData` |
+| `GetPerformanceMetrics` | 当前指标使用 `GetMonitorData`，历史指标使用 `ShowPolledData` |
+
+## 已验证范围
+
+- 单元测试：已通过。
+- 官方响应 fixture 兼容性测试：已通过，覆盖 V3 alarm、Search、ListMonitor、ListServer、GetMonitorData、ShowPolledData RawData/ArchiveData 以及 legacy JSON/XML 业务错误。
+- Docker build：已通过，镜像为 `apm-mcp-server:latest`。
+- MCP stdio smoke test：已通过；`tools/list` 仅包含当前文档列出的只读工具，且工具 schema 不含认证字段。
+- 真实 Applications Manager 实例集成验证：已完成测试实例的五个 P0 工具验证；该实例使用自签名证书，因此测试时显式设置了 `APM_VERIFY_TLS=false`。
+
+验证状态描述针对当前代码版本和已测试的 Applications Manager 实例。不同版本仍可能存在响应字段或可选参数差异；遇到无法可靠识别的响应时，服务会 fail closed。
+
 ## 错误格式
 
 工具错误使用统一结构：

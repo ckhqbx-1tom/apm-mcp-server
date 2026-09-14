@@ -6,6 +6,7 @@ import pytest
 from apm_mcp.client import APMClient, _is_tls_error
 from apm_mcp.config import Settings
 from apm_mcp.errors import APMError, redact
+from conftest import load_json, load_text
 
 
 def settings(key="top-secret"):
@@ -87,3 +88,34 @@ def test_nested_tls_error_detection():
             raise httpx.ConnectError("wrapped") from inner
     except httpx.ConnectError as outer:
         assert _is_tls_error(outer)
+
+
+@pytest.mark.asyncio
+async def test_legacy_json_business_error_on_http_200():
+    async def handler(request):
+        return httpx.Response(200, json=load_json("legacy_api_error.json"))
+    async with APMClient(settings(), httpx.MockTransport(handler)) as client:
+        with pytest.raises(APMError) as caught:
+            await client.get_json("/AppManager/json/Search")
+    assert caught.value.code == "invalid_request"
+
+
+@pytest.mark.asyncio
+async def test_legacy_xml_business_error_on_http_200():
+    async def handler(request):
+        return httpx.Response(200, text=load_text("legacy_api_error.xml"))
+    async with APMClient(settings(), httpx.MockTransport(handler)) as client:
+        with pytest.raises(APMError) as caught:
+            await client.get_xml("/AppManager/xml/GetMonitorData")
+    assert caught.value.code == "invalid_request"
+
+
+@pytest.mark.asyncio
+async def test_official_get_monitor_data_xml_fixture_parses():
+    async def handler(request):
+        return httpx.Response(200, text=load_text("get_monitor_data.xml"))
+    async with APMClient(settings(), httpx.MockTransport(handler)) as client:
+        payload = await client.get_xml("/AppManager/xml/GetMonitorData")
+    monitor = payload["AppManager-response"]["result"]["response"]["Monitorinfo"]
+    assert monitor["RESOURCEID"] == "10000035"
+    assert len(monitor["Attribute"]) == 2

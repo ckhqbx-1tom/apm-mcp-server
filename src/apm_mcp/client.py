@@ -34,9 +34,12 @@ class APMClient:
     async def get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
         response = await self._get(path, params)
         try:
-            return response.json()
+            payload = response.json()
         except (ValueError, UnicodeDecodeError) as exc:
             raise APMError("parse_error", "Applications Manager returned invalid JSON.") from exc
+        if path.lstrip("/").startswith("AppManager/"):
+            _check_legacy_response(payload)
+        return payload
 
     async def get_xml(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         response = await self._get(path, params)
@@ -46,7 +49,9 @@ class APMClient:
             root = ElementTree.fromstring(response.content)
         except Exception as exc:
             raise APMError("parse_error", "Applications Manager returned invalid XML.") from exc
-        return {root.tag: _xml_node(root)}
+        payload = {root.tag: _xml_node(root)}
+        _check_legacy_response(payload)
+        return payload
 
     async def _get(self, path: str, params: dict[str, Any] | None) -> httpx.Response:
         safe_params = {key: value for key, value in (params or {}).items() if value is not None}
@@ -104,3 +109,40 @@ def _xml_node(element: Any) -> dict[str, Any]:
     if text:
         result["value"] = text
     return result
+
+
+def _check_legacy_response(payload: Any) -> None:
+    code = _find_named_value(payload, "response-code")
+    if code is None or str(code) == "4000":
+        return
+    message = str(_find_named_value(payload, "message") or "Applications Manager rejected the request.")
+    lowered = message.lower()
+    if any(term in lowered for term in ("api key", "apikey", "authentication", "expired")):
+        category = "authentication_error"
+    elif any(term in lowered for term in ("permission", "privilege", "authoriz", "access denied")):
+        category = "authorization_error"
+    elif any(term in lowered for term in ("not found", "no data", "does not exist")):
+        category = "not_found"
+    elif str(code) in {"4008", "4032"} or any(term in lowered for term in ("parameter", "irrelevant", "invalid input")):
+        category = "invalid_request"
+    else:
+        category = "upstream_error"
+    # Do not forward vendor text because it may reflect secret-bearing input values.
+    raise APMError(category, f"Applications Manager API failed with response code {code}.")
+
+
+def _find_named_value(payload: Any, wanted: str) -> Any:
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if str(key).lower() == wanted.lower():
+                return value
+        for value in payload.values():
+            found = _find_named_value(value, wanted)
+            if found is not None:
+                return found
+    elif isinstance(payload, list):
+        for value in payload:
+            found = _find_named_value(value, wanted)
+            if found is not None:
+                return found
+    return None

@@ -1,0 +1,22 @@
+{
+  "response-code": "4000",
+  "response": {
+    "uri": "/AppManager/json/ShowPolledData",
+    "result": [
+      {
+        "ResourceName": "production-windows",
+        "Unit": "%",
+        "ResourceId": "10000035",
+        "AttributeName": "CPU Utilization",
+        "AttributeID": "1657",
+        "Status": "SUCCESS",
+        "ReportType": "7 days data",
+        "ArchiveData": [
+          {"ArchivedTime": "1714435200000", "DateTime": "Apr 30, 2024", "AvgValue": "20", "MinValue": "5", "MaxValue": "40"},
+          {"time": "1714348800000", "avg": "30", "min": "10", "max": "50"}
+        ],
+        "Period": "-7"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+<AppManager-response uri="/AppManager/xml/GetMonitorData">
+  <result>
+    <response response-code="4000">
+      <Monitorinfo DISPLAYNAME="production-windows" RESOURCEID="10000035" TYPE="Windows" HEALTHSTATUS="critical" HEALTHSEVERITY="1" AVAILABILITYSTATUS="up" AVAILABILITYSEVERITY="5" MANAGED="true" LASTPOLLEDTIME="1714470960000">
+        <Attribute DISPLAYNAME="Physical Memory Utilization" Value="37" Units="%" AttributeID="1652" />
+        <Attribute DISPLAYNAME="CPU Utilization" Value="5" Units="%" AttributeID="1657" />
+      </Monitorinfo>
+    </response>
+  </result>
+</AppManager-response>
